@@ -10,49 +10,53 @@ class S3Routes(s3: S3Client):
   val routes = Routes:
     // --- Buckets ---
     case GET -> Path("s3") =>
-      val buckets = s3.listBuckets().buckets().asScala.toList
-      Response.withBody(Views.baseView("S3 Buckets", "s3")(html"""
-        <form hx-post="/s3/buckets"
-              hx-target="#bucket-table-body"
-              hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) this.reset()"
-              class="mb-5">
-          <div class="field has-addons">
-            <div class="control is-expanded">
-              <input class="input" name="name" placeholder="my-new-bucket" required>
+      try
+        val buckets = s3.listBuckets().buckets().asScala.toList
+        Response.withBody(Views.baseView("S3 Buckets", "s3")(html"""
+          <form hx-post="/s3/buckets"
+                hx-target="#bucket-table-body"
+                hx-swap="beforeend"
+                hx-on::after-request="if(event.detail.successful) this.reset()"
+                class="mb-5">
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input class="input" name="name" placeholder="my-new-bucket" required>
+              </div>
+              <div class="control">
+                <button class="button is-primary" type="submit">Create Bucket</button>
+              </div>
             </div>
-            <div class="control">
-              <button class="button is-primary" type="submit">Create Bucket</button>
-            </div>
-          </div>
-        </form>
+          </form>
 
-        <div class="table-container">
-          <table class="table is-fullwidth is-hoverable is-striped">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="bucket-table-body">
-              ${
-          if buckets.isEmpty then html"""
-                <tr id="empty-row">
-                  <td colspan="3" class="has-text-centered has-text-grey-light">
-                    No buckets yet — create one above
-                  </td>
+          <div class="table-container">
+            <table class="table is-fullwidth is-hoverable is-striped">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Created</th>
+                  <th>Actions</th>
                 </tr>
-              """
-          else
-            html"${buckets
-                .map(b => bucketRow(b.name(), b.creationDate().toString))}"
-        }
-            </tbody>
-          </table>
-        </div>
-      """))
+              </thead>
+              <tbody id="bucket-table-body">
+                ${
+            if buckets.isEmpty then html"""
+                  <tr id="empty-row">
+                    <td colspan="3" class="has-text-centered has-text-grey-light">
+                      No buckets yet — create one above
+                    </td>
+                  </tr>
+                """
+            else
+              html"${buckets
+                  .map(b => bucketRow(b.name(), b.creationDate().toString))}"
+          }
+              </tbody>
+            </table>
+          </div>
+        """))
+      catch
+        case e: Exception =>
+          Response.withBody(Views.baseView("S3 Buckets", "s3")(Views.serviceUnavailable(e.getMessage)))
 
     case POST -> Path("s3", "buckets") =>
       try
@@ -82,73 +86,77 @@ class S3Routes(s3: S3Client):
 
     // --- Objects ---
     case GET -> Path("s3", "buckets", bucketName, "objects") =>
-      val objects = s3
-        .listObjects(ListObjectsRequest.builder().bucket(bucketName).build())
-        .contents()
-        .asScala
-        .toList
-      Response.withBody(Views.baseView(s"Bucket: $bucketName", "s3")(html"""
-        <nav class="breadcrumb" aria-label="breadcrumbs">
-          <ul>
-            <li><a href="/s3">S3 Buckets</a></li>
-            <li class="is-active"><a href="#">${bucketName}</a></li>
-          </ul>
-        </nav>
+      try
+        val objects = s3
+          .listObjects(ListObjectsRequest.builder().bucket(bucketName).build())
+          .contents()
+          .asScala
+          .toList
+        Response.withBody(Views.baseView(s"Bucket: $bucketName", "s3")(html"""
+          <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+              <li><a href="/s3">S3 Buckets</a></li>
+              <li class="is-active"><a href="#">${bucketName}</a></li>
+            </ul>
+          </nav>
 
-        <form hx-post="/s3/buckets/${bucketName}/objects"
-              hx-target="#object-table-body"
-              hx-swap="beforeend"
-              hx-encoding="multipart/form-data"
-              hx-on::after-request="if(event.detail.successful) this.reset()"
-              class="mb-5">
-          <div class="field is-grouped">
-            <div class="control">
-              <div class="file has-name">
-                <label class="file-label">
-                  <input class="file-input" type="file" name="content" required
-                         onchange="this.closest('.file').querySelector('.file-name').textContent = this.files[0]?.name || 'No file selected'">
-                  <span class="file-cta">
-                    <span class="file-label">Choose file…</span>
-                  </span>
-                  <span class="file-name">No file selected</span>
-                </label>
+          <form hx-post="/s3/buckets/${bucketName}/objects"
+                hx-target="#object-table-body"
+                hx-swap="beforeend"
+                hx-encoding="multipart/form-data"
+                hx-on::after-request="if(event.detail.successful) this.reset()"
+                class="mb-5">
+            <div class="field is-grouped">
+              <div class="control">
+                <div class="file has-name">
+                  <label class="file-label">
+                    <input class="file-input" type="file" name="content" required
+                           onchange="this.closest('.file').querySelector('.file-name').textContent = this.files[0]?.name || 'No file selected'">
+                    <span class="file-cta">
+                      <span class="file-label">Choose file…</span>
+                    </span>
+                    <span class="file-name">No file selected</span>
+                  </label>
+                </div>
+              </div>
+              <div class="control is-expanded">
+                <input class="input" name="key" placeholder="object-key" required>
+              </div>
+              <div class="control">
+                <button class="button is-primary" type="submit">Upload</button>
               </div>
             </div>
-            <div class="control is-expanded">
-              <input class="input" name="key" placeholder="object-key" required>
-            </div>
-            <div class="control">
-              <button class="button is-primary" type="submit">Upload</button>
-            </div>
-          </div>
-        </form>
+          </form>
 
-        <div class="table-container">
-          <table class="table is-fullwidth is-hoverable is-striped">
-            <thead>
-              <tr>
-                <th>Key</th>
-                <th>Size</th>
-                <th>Last Modified</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="object-table-body">
-              ${
-          if objects.isEmpty then html"""
-                <tr id="empty-row">
-                  <td colspan="4" class="has-text-centered has-text-grey-light">
-                    No objects in this bucket
-                  </td>
+          <div class="table-container">
+            <table class="table is-fullwidth is-hoverable is-striped">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Size</th>
+                  <th>Last Modified</th>
+                  <th>Actions</th>
                 </tr>
-              """
-          else
-            html"${objects.map(o => objectRow(bucketName, o.key(), formatSize(o.size()), o.lastModified().toString))}"
-        }
-            </tbody>
-          </table>
-        </div>
-      """))
+              </thead>
+              <tbody id="object-table-body">
+                ${
+            if objects.isEmpty then html"""
+                  <tr id="empty-row">
+                    <td colspan="4" class="has-text-centered has-text-grey-light">
+                      No objects in this bucket
+                    </td>
+                  </tr>
+                """
+            else
+              html"${objects.map(o => objectRow(bucketName, o.key(), formatSize(o.size()), o.lastModified().toString))}"
+          }
+              </tbody>
+            </table>
+          </div>
+        """))
+      catch
+        case e: Exception =>
+          Response.withBody(Views.baseView(s"Bucket: $bucketName", "s3")(Views.serviceUnavailable(e.getMessage)))
 
     case POST -> Path("s3", "buckets", bucketName, "objects") =>
       try

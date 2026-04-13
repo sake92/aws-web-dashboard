@@ -9,45 +9,49 @@ class SqsRoutes(sqs: SqsClient):
   val routes = Routes:
     // --- Queues ---
     case GET -> Path("sqs") =>
-      val queues = sqs.listQueues().queueUrls().asScala.toList
-      Response.withBody(Views.baseView("SQS Queues", "sqs")(html"""
-        <form hx-post="/sqs/queues"
-              hx-target="#queue-table-body"
-              hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) this.reset()"
-              class="mb-5">
-          <div class="field has-addons">
-            <div class="control is-expanded">
-              <input class="input" name="name" placeholder="my-new-queue" required>
+      try
+        val queues = sqs.listQueues().queueUrls().asScala.toList
+        Response.withBody(Views.baseView("SQS Queues", "sqs")(html"""
+          <form hx-post="/sqs/queues"
+                hx-target="#queue-table-body"
+                hx-swap="beforeend"
+                hx-on::after-request="if(event.detail.successful) this.reset()"
+                class="mb-5">
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input class="input" name="name" placeholder="my-new-queue" required>
+              </div>
+              <div class="control">
+                <button class="button is-primary" type="submit">Create Queue</button>
+              </div>
             </div>
-            <div class="control">
-              <button class="button is-primary" type="submit">Create Queue</button>
-            </div>
-          </div>
-        </form>
+          </form>
 
-        <div class="table-container">
-          <table class="table is-fullwidth is-hoverable is-striped">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>URL</th>
-                <th>Messages (approx)</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="queue-table-body">
-              ${if queues.isEmpty then html"""
-                <tr id="empty-row">
-                  <td colspan="4" class="has-text-centered has-text-grey-light">
-                    No queues yet — create one above
-                  </td>
+          <div class="table-container">
+            <table class="table is-fullwidth is-hoverable is-striped">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>URL</th>
+                  <th>Messages (approx)</th>
+                  <th>Actions</th>
                 </tr>
-              """ else html"${queues.map(url => queueRow(queueNameFromUrl(url), url, getApproxMessageCount(url)))}"}
-            </tbody>
-          </table>
-        </div>
-      """))
+              </thead>
+              <tbody id="queue-table-body">
+                ${if queues.isEmpty then html"""
+                  <tr id="empty-row">
+                    <td colspan="4" class="has-text-centered has-text-grey-light">
+                      No queues yet — create one above
+                    </td>
+                  </tr>
+                """ else html"${queues.map(url => queueRow(queueNameFromUrl(url), url, getApproxMessageCount(url)))}"}
+              </tbody>
+            </table>
+          </div>
+        """))
+      catch
+        case e: Exception =>
+          Response.withBody(Views.baseView("SQS Queues", "sqs")(Views.serviceUnavailable(e.getMessage)))
 
     case POST -> Path("sqs", "queues") =>
       try

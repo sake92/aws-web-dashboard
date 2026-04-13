@@ -50,6 +50,17 @@ object Views:
     </html>
   """
 
+  def serviceUnavailable(message: String): Html = html"""
+    <div class="notification is-warning">
+      <p><strong>Could not connect to LocalStack.</strong></p>
+      <p>Make sure Docker is running and LocalStack is available on port 4566.</p>
+      <details class="mt-2">
+        <summary class="is-size-7 has-text-grey" style="cursor:pointer">Error details</summary>
+        <pre class="is-size-7 mt-1">${message}</pre>
+      </details>
+    </div>
+  """
+
   def errorNotification(message: String): Html = html"""
     <div class="notification is-danger auto-dismiss">
       <button class="delete" onclick="this.parentElement.remove()"></button>
