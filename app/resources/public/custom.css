@@ -1,0 +1,83 @@
+/* HTMX loading states — Bulma spinner on buttons during requests */
+.htmx-request.button {
+  color: transparent !important;
+  pointer-events: none;
+  position: relative;
+}
+.htmx-request.button::after {
+  content: "";
+  display: block;
+  width: 1em;
+  height: 1em;
+  position: absolute;
+  top: calc(50% - 0.5em);
+  left: calc(50% - 0.5em);
+  border: 2px solid #dbdbdb;
+  border-radius: 50%;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  animation: spinAround 500ms infinite linear;
+}
+
+/* HTMX swap transitions */
+.htmx-settling tr,
+.htmx-settling .box {
+  opacity: 0;
+}
+tr, .box {
+  transition: opacity 0.3s ease-in;
+}
+
+/* Fade-in for new elements (SSE messages, new table rows) */
+.htmx-added {
+  animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* SSE status indicator */
+.sse-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.sse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #b5b5b5;
+}
+.sse-dot.is-active {
+  background-color: #48c78e;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Bulma spinner keyframes (needed for button loading) */
+@keyframes spinAround {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Spacing tweaks */
+.table-container {
+  margin-top: 1.5rem;
+}
+.breadcrumb {
+  margin-bottom: 1rem !important;
+}
+
+/* Error notification auto-dismiss */
+.notification.is-danger.auto-dismiss {
+  animation: fadeIn 0.3s ease-in, fadeOut 0.3s ease-out 4.7s forwards;
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; height: 0; padding: 0; margin: 0; overflow: hidden; }
+}

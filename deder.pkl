@@ -1,0 +1,24 @@
+amends "https://sake92.github.io/deder/config/v0.2.3/DederProject.pkl"
+
+local const appModules =
+  new CreateScalaModules {
+    root = "app"
+    template = new ScalaModule {
+      scalaVersion = "3.7.3"
+      deps {
+        "ba.sake::sharaf-undertow:0.17.0"
+        "software.amazon.awssdk:s3:2.42.29"
+        "software.amazon.awssdk:sqs:2.42.29"
+      }
+      mainClass = "app.Main"
+    }
+    testTemplate = (template.asTest()) {
+      deps {
+        "org.scalameta::munit:1.2.1"
+      }
+    }
+  }.get
+
+modules {
+  ...appModules.all
+}
