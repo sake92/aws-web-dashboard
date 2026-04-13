@@ -1,13 +1,12 @@
 package app
 
 import scala.jdk.CollectionConverters.*
-import ba.sake.sharaf.{*, given}
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.*
+import ba.sake.sharaf.{*, given}
 
 class SqsRoutes(sqs: SqsClient):
   val routes = Routes:
-
     // --- Queues ---
     case GET -> Path("sqs") =>
       val queues = sqs.listQueues().queueUrls().asScala.toList
@@ -57,20 +56,24 @@ class SqsRoutes(sqs: SqsClient):
         val result = sqs.createQueue(CreateQueueRequest.builder().queueName(queueName).build())
         val count = getApproxMessageCount(result.queueUrl())
         Response.withBody(queueRow(queueName, result.queueUrl(), count))
-      catch case e: SqsException =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: SqsException =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     case DELETE -> Path("sqs", "queues", queueName) =>
       try
         val queueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build()).queueUrl()
         sqs.deleteQueue(DeleteQueueRequest.builder().queueUrl(queueUrl).build())
         Response.withBody(html"")
-      catch case e: SqsException =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: SqsException =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     // --- Messages ---
     case GET -> Path("sqs", "queues", queueName, "messages") =>
@@ -140,7 +143,8 @@ class SqsRoutes(sqs: SqsClient):
         val form = Request.current.bodyForm[(body: String)]
         val queueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build()).queueUrl()
         val result = sqs.sendMessage(
-          SendMessageRequest.builder()
+          SendMessageRequest
+            .builder()
             .queueUrl(queueUrl)
             .messageBody(form.body)
             .build()
@@ -150,10 +154,12 @@ class SqsRoutes(sqs: SqsClient):
             Message sent — ID: <code>${result.messageId()}</code>
           </div>
         """)
-      catch case e: SqsException =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: SqsException =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     case POST -> Path("sqs", "queues", queueName, "purge") =>
       try
@@ -164,10 +170,12 @@ class SqsRoutes(sqs: SqsClient):
             Queue purged successfully.
           </div>
         """)
-      catch case e: SqsException =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: SqsException =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     case GET -> Path("sqs", "queues", queueName, "messages", "receive-start") =>
       try
@@ -192,10 +200,12 @@ class SqsRoutes(sqs: SqsClient):
             }, 62000);
           </script>
         """)
-      catch case e: SqsException =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: SqsException =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     case GET -> Path("sqs", "queues", queueName, "messages", "receive") =>
       val queueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build()).queueUrl()
@@ -208,7 +218,8 @@ class SqsRoutes(sqs: SqsClient):
             val remainingMs = timeoutMs - (System.currentTimeMillis() - startTime)
             val waitSeconds = Math.min(20, Math.max(1, remainingMs / 1000)).toInt
             val response = sqs.receiveMessage(
-              ReceiveMessageRequest.builder()
+              ReceiveMessageRequest
+                .builder()
                 .queueUrl(queueUrl)
                 .maxNumberOfMessages(10)
                 .waitTimeSeconds(waitSeconds)
@@ -216,8 +227,9 @@ class SqsRoutes(sqs: SqsClient):
             )
             for msg <- response.messages().asScala do
               val timestamp = java.time.Instant.now().toString
-              sseSender.send(ServerSentEvent.Message(
-                data = html"""
+              sseSender.send(
+                ServerSentEvent.Message(
+                  data = html"""
                   <div class="box mb-3">
                     <p class="mb-2">${msg.body()}</p>
                     <p class="is-size-7 has-text-grey">
@@ -226,9 +238,11 @@ class SqsRoutes(sqs: SqsClient):
                     </p>
                   </div>
                 """.toString
-              ))
+                )
+              )
               sqs.deleteMessage(
-                DeleteMessageRequest.builder()
+                DeleteMessageRequest
+                  .builder()
                   .queueUrl(queueUrl)
                   .receiptHandle(msg.receiptHandle())
                   .build()
@@ -244,12 +258,16 @@ class SqsRoutes(sqs: SqsClient):
 
   private def getApproxMessageCount(queueUrl: String): String =
     try
-      val attrs = sqs.getQueueAttributes(
-        GetQueueAttributesRequest.builder()
-          .queueUrl(queueUrl)
-          .attributeNames(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES)
-          .build()
-      ).attributes().asScala
+      val attrs = sqs
+        .getQueueAttributes(
+          GetQueueAttributesRequest
+            .builder()
+            .queueUrl(queueUrl)
+            .attributeNames(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES)
+            .build()
+        )
+        .attributes()
+        .asScala
       attrs.getOrElse(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES, "0")
     catch case _: Exception => "?"
 

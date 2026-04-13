@@ -1,10 +1,10 @@
 package app
 
 import scala.jdk.CollectionConverters.*
-import ba.sake.sharaf.{*, given}
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.*
 import software.amazon.awssdk.core.sync.RequestBody
+import ba.sake.sharaf.{*, given}
 
 class S3Routes(s3: S3Client):
   val routes = Routes:
@@ -37,13 +37,18 @@ class S3Routes(s3: S3Client):
               </tr>
             </thead>
             <tbody id="bucket-table-body">
-              ${if buckets.isEmpty then html"""
+              ${
+          if buckets.isEmpty then html"""
                 <tr id="empty-row">
                   <td colspan="3" class="has-text-centered has-text-grey-light">
                     No buckets yet — create one above
                   </td>
                 </tr>
-              """ else html"${buckets.map(b => bucketRow(b.name(), b.creationDate().toString))}"}
+              """
+          else
+            html"${buckets
+                .map(b => bucketRow(b.name(), b.creationDate().toString))}"
+        }
             </tbody>
           </table>
         </div>
@@ -57,25 +62,31 @@ class S3Routes(s3: S3Client):
         val bucket = s3.listBuckets().buckets().asScala.find(_.name() == newBucketName)
         val created = bucket.map(_.creationDate().toString).getOrElse("")
         Response.withBody(bucketRow(newBucketName, created))
-      catch case e: S3Exception =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: S3Exception =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     case DELETE -> Path("s3", "buckets", bucketName) =>
       try
         s3.deleteBucket(DeleteBucketRequest.builder().bucket(bucketName).build())
         Response.withBody(html"")
-      catch case e: S3Exception =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: S3Exception =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     // --- Objects ---
     case GET -> Path("s3", "buckets", bucketName, "objects") =>
       val objects = s3
         .listObjects(ListObjectsRequest.builder().bucket(bucketName).build())
-        .contents().asScala.toList
+        .contents()
+        .asScala
+        .toList
       Response.withBody(Views.baseView(s"Bucket: $bucketName", "s3")(html"""
         <nav class="breadcrumb" aria-label="breadcrumbs">
           <ul>
@@ -123,13 +134,17 @@ class S3Routes(s3: S3Client):
               </tr>
             </thead>
             <tbody id="object-table-body">
-              ${if objects.isEmpty then html"""
+              ${
+          if objects.isEmpty then html"""
                 <tr id="empty-row">
                   <td colspan="4" class="has-text-centered has-text-grey-light">
                     No objects in this bucket
                   </td>
                 </tr>
-              """ else html"${objects.map(o => objectRow(bucketName, o.key(), formatSize(o.size()), o.lastModified().toString))}"}
+              """
+          else
+            html"${objects.map(o => objectRow(bucketName, o.key(), formatSize(o.size()), o.lastModified().toString))}"
+        }
             </tbody>
           </table>
         </div>
@@ -143,29 +158,45 @@ class S3Routes(s3: S3Client):
           RequestBody.fromFile(form.content)
         )
         val obj = s3.headObject(HeadObjectRequest.builder().bucket(bucketName).key(form.key).build())
-        Response.withBody(objectRow(bucketName, form.key, formatSize(obj.contentLength()), obj.lastModified().toString))
-      catch case e: S3Exception =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+        Response.withBody(
+          objectRow(
+            bucketName,
+            form.key,
+            formatSize(obj.contentLength()),
+            obj.lastModified().toString
+          )
+        )
+      catch
+        case e: S3Exception =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
     case GET -> Path("s3", "buckets", bucketName, "objects", key, "download") =>
       try
         val obj = s3.getObject(GetObjectRequest.builder().bucket(bucketName).key(key).build())
         val inputStream: java.io.InputStream = obj
-        Response.withBody(inputStream)
-          .settingHeader("Content-Disposition", s"""attachment; filename="$key"""")
-      catch case e: S3Exception =>
-        Response.redirect(s"/s3/buckets/$bucketName/objects")
+        Response
+          .withBody(inputStream)
+          .settingHeader(
+            "Content-Disposition",
+            s"""attachment; filename="$key""""
+          )
+      catch
+        case e: S3Exception =>
+          Response.redirect(s"/s3/buckets/$bucketName/objects")
 
     case DELETE -> Path("s3", "buckets", bucketName, "objects", key) =>
       try
         s3.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(key).build())
         Response.withBody(html"")
-      catch case e: S3Exception =>
-        Response.withBody(Views.errorNotification(e.getMessage))
-          .settingHeader("HX-Retarget", "#error-container")
-          .settingHeader("HX-Reswap", "afterbegin")
+      catch
+        case e: S3Exception =>
+          Response
+            .withBody(Views.errorNotification(e.getMessage))
+            .settingHeader("HX-Retarget", "#error-container")
+            .settingHeader("HX-Reswap", "afterbegin")
 
   private def bucketRow(name: String, created: String): Html = html"""
     <tr>
@@ -188,7 +219,12 @@ class S3Routes(s3: S3Client):
     </tr>
   """
 
-  private def objectRow(bucketName: String, key: String, size: String, lastModified: String): Html = html"""
+  private def objectRow(
+      bucketName: String,
+      key: String,
+      size: String,
+      lastModified: String
+  ): Html = html"""
     <tr>
       <td>${key}</td>
       <td>${size}</td>

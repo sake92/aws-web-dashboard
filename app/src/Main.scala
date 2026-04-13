@@ -36,11 +36,13 @@ object Main:
       case GET -> Path() =>
         Response.redirect("/s3")
 
-    val routes = Routes.merge(Seq(
-      mainRoutes,
-      S3Routes(s3).routes,
-      SqsRoutes(sqs).routes
-    ))
+    val routes = Routes.merge(
+      Seq(
+        mainRoutes,
+        S3Routes(s3).routes,
+        SqsRoutes(sqs).routes
+      )
+    )
 
     UndertowSharafServer("localhost", 8181, routes).start()
     println(s"Server started at http://localhost:8181")
