@@ -46,6 +46,22 @@ object Views:
           ${content}
         </div>
       </section>
+      <script>
+        htmx.on('htmx:beforeSend', function(evt) {
+          var elt = evt.detail.elt;
+          var btn = elt.tagName === 'FORM'
+            ? elt.querySelector('button[type="submit"]')
+            : (elt.classList.contains('button') ? elt : null);
+          if (btn) btn.classList.add('is-loading');
+        });
+        htmx.on('htmx:afterRequest', function(evt) {
+          var elt = evt.detail.elt;
+          var btn = elt.tagName === 'FORM'
+            ? elt.querySelector('button[type="submit"]')
+            : (elt.classList.contains('button') ? elt : null);
+          if (btn) btn.classList.remove('is-loading');
+        });
+      </script>
     </body>
     </html>
   """

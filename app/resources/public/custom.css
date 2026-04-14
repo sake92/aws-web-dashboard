@@ -1,23 +1,6 @@
-/* HTMX loading states — Bulma spinner on buttons during requests */
-.htmx-request.button {
-  color: transparent !important;
-  pointer-events: none;
-  position: relative;
-}
-.htmx-request.button::after {
-  content: "";
-  display: block;
-  width: 1em;
-  height: 1em;
-  position: absolute;
-  top: calc(50% - 0.5em);
-  left: calc(50% - 0.5em);
-  border: 2px solid #dbdbdb;
-  border-radius: 50%;
-  border-right-color: transparent;
-  border-top-color: transparent;
-  animation: spinAround 500ms infinite linear;
-}
+/* HTMX loading states are handled via htmx:beforeSend / htmx:afterRequest
+   events in Views.scala, which add/remove Bulma's .is-loading class so that
+   the spinner color is correct for each button variant (primary, danger, etc.) */
 
 /* HTMX swap transitions */
 .htmx-settling tr,
@@ -59,11 +42,6 @@ tr, .box {
   50% { opacity: 0.4; }
 }
 
-/* Bulma spinner keyframes (needed for button loading) */
-@keyframes spinAround {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 
 /* Spacing tweaks */
 .table-container {

@@ -184,13 +184,9 @@ class S3Routes(s3: S3Client):
     case GET -> Path("s3", "buckets", bucketName, "objects", key, "download") =>
       try
         val obj = s3.getObject(GetObjectRequest.builder().bucket(bucketName).key(key).build())
-        val inputStream: java.io.InputStream = obj
         Response
-          .withBody(inputStream)
-          .settingHeader(
-            "Content-Disposition",
-            s"""attachment; filename="$key""""
-          )
+          .withBody(obj)
+          .settingHeader("Content-Disposition", s"""attachment; filename="$key"""")
       catch
         case e: S3Exception =>
           Response.redirect(s"/s3/buckets/$bucketName/objects")
