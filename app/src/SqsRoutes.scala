@@ -218,7 +218,7 @@ class SqsRoutes(sqs: SqsClient):
         val startTime = System.currentTimeMillis()
         val timeoutMs = 60_000L
         try
-          while System.currentTimeMillis() - startTime < timeoutMs do
+          while System.currentTimeMillis() - startTime < timeoutMs do {
             val remainingMs = timeoutMs - (System.currentTimeMillis() - startTime)
             val waitSeconds = Math.min(20, Math.max(1, remainingMs / 1000)).toInt
             val response = sqs.receiveMessage(
@@ -251,6 +251,7 @@ class SqsRoutes(sqs: SqsClient):
                   .receiptHandle(msg.receiptHandle())
                   .build()
               )
+          }
           sseSender.send(ServerSentEvent.Done())
         catch
           case _: Exception =>

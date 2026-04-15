@@ -1,12 +1,12 @@
 package app
 
 import java.net.URI
-import ba.sake.sharaf.{*, given}
-import ba.sake.sharaf.undertow.UndertowSharafServer
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.auth.credentials.*
+import ba.sake.sharaf.{*, given}
+import ba.sake.sharaf.undertow.UndertowSharafServer
 
 object Main:
 
