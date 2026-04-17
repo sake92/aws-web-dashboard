@@ -7,6 +7,7 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.auth.credentials.*
 import ba.sake.sharaf.{*, given}
 import ba.sake.sharaf.undertow.UndertowSharafServer
+import sttp.model.StatusCode
 
 object Main:
 
@@ -34,7 +35,7 @@ object Main:
   def main(args: Array[String]): Unit =
     val mainRoutes = Routes:
       case GET -> Path() =>
-        Response.redirect("/s3")
+        Response.withStatus(StatusCode.Found).settingHeader("Location", "/s3")
 
     val routes = Routes.merge(
       Seq(
